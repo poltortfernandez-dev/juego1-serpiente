@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#151814">
+  <title>Serpiente</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="game.js" defer></script>
+</head>
+<body>
+  <main class="cabinet">
+    <header class="header">
+      <h1>Serpiente<span>.</span></h1>
+      <dl class="scores">
+        <div><dt>Puntos</dt><dd id="score">00</dd></div>
+        <div><dt>Récord</dt><dd id="best">00</dd></div>
+      </dl>
+    </header>
+
+    <div class="board">
+      <canvas id="board" width="600" height="600" aria-label="Tablero de serpiente"></canvas>
+      <div class="overlay" id="overlay">
+        <div class="prompt">
+          <h2 id="title">A jugar</h2>
+          <p id="status" role="status">Come, crece y esquiva las paredes.</p>
+          <button type="button" id="action">Empezar</button>
+        </div>
+      </div>
+    </div>
+
+    <footer class="controls">
+      <p class="keyboard"><kbd>↑ ↓ ← →</kbd> Mover <span>·</span> <kbd>Espacio</kbd> Pausa</p>
+      <div class="dpad" role="group" aria-label="Controles de dirección">
+        <button type="button" data-direction="up" aria-label="Arriba">↑</button>
+        <button type="button" data-direction="left" aria-label="Izquierda">←</button>
+        <button type="button" data-direction="down" aria-label="Abajo">↓</button>
+        <button type="button" data-direction="right" aria-label="Derecha">→</button>
+      </div>
+      <button type="button" id="pause" class="secondary" disabled>Pausa</button>
+    </footer>
+  </main>
+</body>
+</html>
