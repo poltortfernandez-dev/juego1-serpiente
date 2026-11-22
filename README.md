@@ -1,24 +1,22 @@
 # Serpiente
 
-Juego de navegador para practicar cómo ejecutar archivos y trabajar con GitHub.
+[Jugar a Serpiente en el navegador](https://poltortfernandez-dev.github.io/juego1-serpiente/)
 
-## Ejecutar
+El enlace funciona después de que GitHub Pages publique el juego. Si muestra un error 404, sigue los pasos de publicación de abajo.
 
-Desde la carpeta del repositorio, arranca el servidor local con Python 3.
+## Cómo jugar
 
-```bash
-python3 -m http.server 8000
-```
+Pulsa **Empezar**. Usa las flechas o WASD para girar. En el móvil, desliza sobre el tablero o toca las flechas en pantalla. Usa **Pausa** o **Espacio** para parar y reanudar. El récord se guarda en el navegador.
 
-Abre `http://localhost:8000` en un navegador. Pulsa **Empezar** y usa las flechas, WASD o los botones en pantalla. Pulsa **Espacio** o **Pausa** para detener y reanudar la partida. El récord se guarda en el navegador.
+## Publicar en GitHub Pages
 
-`index.html` define la interfaz, `styles.css` le da estilo y `game.js` ejecuta la lógica. El juego funciona sin instalar paquetes.
+1. Sube `index.html`, `styles.css`, `game.js` y este `README.md` a la raíz de la rama `main`.
+2. En el repositorio, abre **Settings → Pages**.
+3. En **Build and deployment**, elige **Deploy from a branch**. Selecciona **main** y **/ (root)** y pulsa **Save**.
+4. Cuando termine la publicación, pulsa **Visit site** en esa misma pantalla. Los cambios siguientes en `main` se publican en la misma dirección.
 
-## Comprobar GitHub
+Si GitHub indica que Pages no está disponible para tu repositorio, consulta las opciones que muestra esa pantalla para su plan y visibilidad.
 
-```bash
-git status --short
-git ls-remote --heads origin main
-```
+## Jugar sin publicar
 
-El primer comando muestra los cambios locales. El segundo consulta la rama `main` en GitHub.
+Descarga el repositorio con **Code → Download ZIP**, descomprime el ZIP y abre `index.html` desde la carpeta extraída. Los archivos `styles.css` y `game.js` deben estar junto a `index.html`. No hace falta instalar Python ni usar Codex.
