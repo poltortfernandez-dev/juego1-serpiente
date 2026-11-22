@@ -4,9 +4,12 @@ const scoreLabel = document.querySelector('#score');
 const bestLabel = document.querySelector('#best');
 const overlay = document.querySelector('#overlay');
 const title = document.querySelector('#title');
-const status = document.querySelector('#status');
+const statusLabel = document.querySelector('#status');
 const action = document.querySelector('#action');
 const pause = document.querySelector('#pause');
+const directionButtons = new Map(Array.from(document.querySelectorAll('[data-direction]'),
+  button => [button.dataset.direction, button]));
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 const size = 20;
 const cell = canvas.width / size;
@@ -30,6 +33,9 @@ let score;
 let best = readBest();
 let state = 'ready';
 let timer;
+let frame;
+let activeButton;
+let swipe;
 
 function readBest() {
   try {
@@ -67,30 +73,72 @@ function reset() {
   score = 0;
   food = placeFood();
   updateScores();
+  cancelAnimationFrame(frame);
   draw();
 }
 
-function draw() {
-  for (let y = 0; y < size; y += 1) {
-    for (let x = 0; x < size; x += 1) {
-      context.fillStyle = (x + y) % 2 === 0 ? '#293622' : '#2c3a24';
-      context.fillRect(x * cell, y * cell, cell, cell);
-    }
-  }
+function draw(segments = snake) {
+  context.clearRect(0, 0, canvas.width, canvas.height);
 
   if (food) {
-    context.fillStyle = '#ff936e';
+    const x = (food.x + .5) * cell;
+    const y = (food.y + .5) * cell;
+    context.fillStyle = '#ffaeab';
     context.beginPath();
-    context.arc((food.x + 0.5) * cell, (food.y + 0.5) * cell, cell * 0.3, 0, Math.PI * 2);
+    context.arc(x, y, cell * .29, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = '#ffe4d8';
+    context.beginPath();
+    context.arc(x - 3, y - 3, cell * .075, 0, Math.PI * 2);
     context.fill();
   }
 
-  snake.forEach(({ x, y }, index) => {
-    context.fillStyle = index === 0 ? '#d5ff85' : '#94cc54';
+  for (let index = segments.length - 1; index >= 0; index -= 1) {
+    const { x, y } = segments[index];
+    context.fillStyle = index === 0 ? '#d0ffb4' : '#74dfaa';
     context.beginPath();
-    context.roundRect(x * cell + 1, y * cell + 1, cell - 2, cell - 2, 5);
+    context.roundRect(x * cell + 2, y * cell + 2, cell - 4, cell - 4, 9);
     context.fill();
-  });
+  }
+
+  const head = segments[0];
+  const eyeX = (head.x + .5) * cell + direction.x * 5;
+  const eyeY = (head.y + .5) * cell + direction.y * 5;
+  context.fillStyle = '#1b654c';
+  for (const side of [-1, 1]) {
+    context.beginPath();
+    context.arc(eyeX - direction.y * side * 5, eyeY + direction.x * side * 5, 2, 0, Math.PI * 2);
+    context.fill();
+  }
+}
+
+function stepDelay() {
+  return Math.max(65, 155 - score * 4);
+}
+
+function animateStep(previous) {
+  cancelAnimationFrame(frame);
+  if (reducedMotion.matches) {
+    draw();
+    return;
+  }
+
+  const start = performance.now();
+  const duration = stepDelay() * .8;
+  function renderStep(now) {
+    const progress = Math.min(1, Math.max(0, (now - start) / duration));
+    draw(snake.map(({ x, y }, index) => {
+      const from = previous[index] ?? previous.at(-1);
+      return { x: from.x + (x - from.x) * progress, y: from.y + (y - from.y) * progress };
+    }));
+    if (progress < 1) frame = requestAnimationFrame(renderStep);
+  }
+  frame = requestAnimationFrame(renderStep);
+}
+
+function clearDirectionFeedback() {
+  activeButton?.removeAttribute('data-active');
+  activeButton = null;
 }
 
 function setState(nextState, heading, message, label) {
@@ -101,10 +149,11 @@ function setState(nextState, heading, message, label) {
   pause.textContent = state === 'paused' ? 'Continuar' : 'Pausa';
 
   if (state === 'playing') {
-    timer = setTimeout(tick, Math.max(65, 155 - score * 4));
+    timer = setTimeout(tick, stepDelay());
   } else {
+    clearDirectionFeedback();
     title.textContent = heading;
-    status.textContent = message;
+    statusLabel.textContent = message;
     action.textContent = label;
   }
 }
@@ -112,6 +161,7 @@ function setState(nextState, heading, message, label) {
 function tick() {
   direction = nextDirection ?? direction;
   nextDirection = null;
+  clearDirectionFeedback();
   const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
   const eating = sameCell(head, food);
   const body = eating ? snake : snake.slice(0, -1);
@@ -121,7 +171,8 @@ function tick() {
     return;
   }
 
-  snake.unshift(head);
+  const previous = snake;
+  snake = [head, ...previous];
   if (eating) {
     score += 1;
     if (score > best) {
@@ -138,9 +189,9 @@ function tick() {
     snake.pop();
   }
 
-  draw();
+  animateStep(previous);
   if (food) {
-    timer = setTimeout(tick, Math.max(65, 155 - score * 4));
+    timer = setTimeout(tick, stepDelay());
   } else {
     setState('finished', '¡Tablero completo!', `Puntos: ${score}`, 'Volver a jugar');
   }
@@ -152,6 +203,8 @@ function turn(name) {
   if (candidate === direction) return;
   if (candidate.x + direction.x === 0 && candidate.y + direction.y === 0) return;
   nextDirection = candidate;
+  activeButton = directionButtons.get(name);
+  activeButton.setAttribute('data-active', '');
 }
 
 function activate() {
@@ -165,8 +218,44 @@ function activate() {
 
 action.addEventListener('click', activate);
 pause.addEventListener('click', activate);
-document.querySelectorAll('[data-direction]').forEach(button => {
-  button.addEventListener('click', () => turn(button.dataset.direction));
+for (const [name, button] of directionButtons) {
+  button.addEventListener('pointerdown', event => {
+    if (event.isPrimary && event.button === 0) turn(name);
+  });
+  button.addEventListener('click', event => {
+    if (event.detail === 0) turn(name);
+  });
+}
+
+canvas.addEventListener('pointerdown', event => {
+  if (state !== 'playing' || !event.isPrimary || event.pointerType === 'mouse') return;
+  swipe = { id: event.pointerId, x: event.clientX, y: event.clientY };
+  canvas.setPointerCapture(event.pointerId);
+});
+
+canvas.addEventListener('pointermove', event => {
+  if (state !== 'playing' || swipe?.id !== event.pointerId) return;
+  const x = event.clientX - swipe.x;
+  const y = event.clientY - swipe.y;
+  if (Math.max(Math.abs(x), Math.abs(y)) < 12) return;
+
+  if (Math.abs(x) > Math.abs(y)) {
+    turn(x > 0 ? 'right' : 'left');
+  } else {
+    turn(y > 0 ? 'down' : 'up');
+  }
+
+  swipe.x = event.clientX;
+  swipe.y = event.clientY;
+});
+
+canvas.addEventListener('lostpointercapture', event => {
+  if (swipe?.id === event.pointerId) swipe = null;
+});
+
+reducedMotion.addEventListener('change', () => {
+  cancelAnimationFrame(frame);
+  draw();
 });
 
 document.addEventListener('keydown', event => {
